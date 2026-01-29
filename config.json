@@ -1,0 +1,17 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "cors_origins": [
+      "*"
+    ]
+  },
+  "client": {
+    "api_url": "http://localhost:8000"
+  },
+  "spotify": {
+    "client_id": "YOUR_SPOTIFY_CLIENT_ID",
+    "client_secret": "YOUR_SPOTIFY_CLIENT_SECRET",
+    "redirect_uri": "http://localhost:8000/spotify/callback"
+  }
+}

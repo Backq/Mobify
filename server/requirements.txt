@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pytubefix
+httpx
+pydantic
+sqlalchemy
+bcrypt
+python-jose[cryptography]
+syncedlyrics

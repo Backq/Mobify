@@ -1,0 +1,184 @@
+.lyrics-container {
+    position: fixed;
+    top: 80px;
+    /* Below header */
+    bottom: 100px;
+    /* Above player bar */
+    right: 20px;
+    width: 350px;
+    max-width: 90vw;
+    background: rgba(10, 10, 10, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1200;
+
+    overflow: hidden;
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.lyrics-sync-controls {
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    /* Left of close button, or right side */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px 8px;
+    border-radius: 20px;
+    z-index: 20;
+}
+
+.sync-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.sync-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.sync-val {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 30px;
+    text-align: center;
+}
+
+.lyrics-header-mobile {
+    display: none;
+    padding: 1rem;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    color: white;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.lyrics-scroll {
+    overflow-y: auto;
+    height: 100%;
+    padding: 2rem;
+    padding-bottom: 50%;
+
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+.lyrics-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.lyrics-line {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 1.5rem 0;
+    transition: all 0.3s ease;
+    cursor: default;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.lyrics-line.active {
+    color: #fff;
+    transform: scale(1.05);
+    /* Slight pop */
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.lyrics-line:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.no-lyrics {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 1.1rem;
+}
+
+/* Response for smaller screens */
+@media (max-width: 768px) {
+    .lyrics-container {
+        position: fixed;
+        inset: 0;
+        bottom: 240px;
+        /* Leave space for player controls */
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+        border-radius: 0;
+        border: none;
+        background: rgba(10, 10, 10, 0.9);
+        backdrop-filter: blur(20px);
+        padding-top: 0;
+        z-index: 2000;
+        /* Must be > player-fullscreen (1000) */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lyrics-sync-controls {
+        position: relative;
+        /* Use normal flow in header */
+        top: 0;
+        right: 0;
+        margin: 0 auto;
+        padding-bottom: 1rem;
+        background: transparent;
+    }
+
+    .lyrics-header-mobile {
+        display: flex;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}

@@ -1,0 +1,31 @@
+# General
+.DS_Store
+.env
+
+# Dependencies
+node_modules/
+server/venv/
+server/__pycache__/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Build
+client/dist/
+build/
+
+# Media & Cache
+server/cache/
+*.mp3
+*.mp4
+*.webm
+
+# Binaries
+server/ffmpeg.exe
+server/ffprobe.exe
+
+# IDE
+.vscode/
+.idea/
