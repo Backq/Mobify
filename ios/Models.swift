@@ -28,6 +28,14 @@ struct Playlist: Codable, Identifiable {
     let track_count: Int
 }
 
+struct PlaylistsResponse: Codable {
+    let playlists: [Playlist]
+}
+
+struct LikedSongsResponse: Codable {
+    let tracks: [Track]
+}
+
 struct PlaylistDetail: Codable {
     let id: Int
     let name: String

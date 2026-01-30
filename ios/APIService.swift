@@ -1,3 +1,5 @@
+import Foundation
+
 enum APIError: Error, LocalizedError {
     case badURL
     case serverError(status: Int, message: String)
@@ -93,7 +95,8 @@ class APIService {
     
     // MARK: - Liked Songs
     func getLikedSongs() async throws -> [Track] {
-        return try await fetch(endpoint: "/liked")
+        let res: LikedSongsResponse = try await fetch(endpoint: "/liked")
+        return res.tracks
     }
     
     func addLiked(track: Track) async throws {
@@ -107,7 +110,8 @@ class APIService {
     
     // MARK: - Playlists
     func getPlaylists() async throws -> [Playlist] {
-        return try await fetch(endpoint: "/playlists")
+        let res: PlaylistsResponse = try await fetch(endpoint: "/playlists")
+        return res.playlists
     }
     
     func getPlaylistDetail(id: Int) async throws -> PlaylistDetail {
