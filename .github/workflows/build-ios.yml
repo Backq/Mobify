@@ -20,7 +20,7 @@ jobs:
       - name: Set up Xcode version
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.4.0'
+          xcode-version: '16.2.0'
 
       - name: Set up Xcode Project
         run: |
@@ -114,6 +114,7 @@ jobs:
               settings:
                 INFOPLIST_FILE: MobifyApp/MobifyApp/Info.plist
                 ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+                PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
                 CODE_SIGN_STYLE: Manual
@@ -131,7 +132,8 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            ASSETCATALOG_COMPILER_SKIP_SDK_VALIDATION=YES
 
       - name: Create IPA
         run: |
