@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Settings, RefreshCw, Check, Link as LinkIcon, Music, ListMusic, Download, ArrowLeft, ExternalLink, Loader } from 'lucide-react';
-import { spotifyAPI } from '../services/api';
+import { Settings, RefreshCw, Check, Link as LinkIcon, Music, ListMusic, Download, ArrowLeft, ExternalLink, Loader, Youtube } from 'lucide-react';
+import { spotifyAPI, youtubeAPI } from '../services/api';
 import './AdminPanel.css';
 
 const AdminPanel = ({ onBack, onUpdateLibrary }) => {
     const [status, setStatus] = useState({ connected: false, token_expired: true });
     const [playlists, setPlaylists] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [importingId, setImportingId] = useState(null);
     const [message, setMessage] = useState('');
     const [directUrl, setDirectUrl] = useState('');
     const [directName, setDirectName] = useState('');
 
+    // YouTube specific state
+    const [ytUrl, setYtUrl] = useState('');
+    const [ytName, setYtName] = useState('');
+
     useEffect(() => {
-        checkStatus();
+        // We skip spotify status check because auth is disabled for now
+        // checkStatus();
     }, []);
 
     const checkStatus = async () => {
@@ -44,13 +49,7 @@ const AdminPanel = ({ onBack, onUpdateLibrary }) => {
     };
 
     const handleConnect = async () => {
-        try {
-            const authUrl = await spotifyAPI.getAuthUrl();
-            // We open in same tab for OAuth callback
-            window.location.href = authUrl;
-        } catch (error) {
-            console.error('Failed to get auth URL', error);
-        }
+        alert("Spotify OAuth is currently disabled due to developer portal restrictions. Please use the Direct Import via URL below.");
     };
 
     const handleImportPlaylist = async (playlist) => {
@@ -94,6 +93,31 @@ const AdminPanel = ({ onBack, onUpdateLibrary }) => {
         }
     };
 
+    const handleYoutubeImport = async (e) => {
+        e.preventDefault();
+        if (!ytUrl || !ytName) {
+            setMessage('Please fill in both YouTube URL and Name');
+            setTimeout(() => setMessage(''), 3000);
+            return;
+        }
+
+        setImportingId('youtube');
+        setMessage(`Importing YouTube playlist...`);
+        try {
+            const result = await youtubeAPI.importPlaylistByUrl(ytUrl, ytName);
+            setMessage(`Successfully imported ${result.imported_count} tracks from YouTube!`);
+            setYtUrl('');
+            setYtName('');
+            if (onUpdateLibrary) onUpdateLibrary();
+            setTimeout(() => setMessage(''), 3000);
+        } catch (error) {
+            setMessage('Failed to import YouTube playlist. Check if it is public.');
+            setTimeout(() => setMessage(''), 3000);
+        } finally {
+            setImportingId(null);
+        }
+    };
+
     const handleImportLiked = async () => {
         setImportingId('liked');
         setMessage('Importing your Liked Songs...');
@@ -122,38 +146,51 @@ const AdminPanel = ({ onBack, onUpdateLibrary }) => {
                 </div>
 
                 <div className="admin-content">
+                    {message && <div className="admin-message">{message}</div>}
+
+                    {/* YouTube Playlist Import */}
                     <section className="admin-section">
                         <div className="section-header">
-                            <LinkIcon size={20} className="section-icon" />
-                            <h3>Spotify Integration</h3>
+                            <Youtube size={20} className="section-icon youtube-icon-color" />
+                            <h3>YouTube Playlist Import</h3>
                         </div>
-
-                        {!status.connected ? (
-                            <div className="connect-card">
-                                <p>Connect your Spotify account to import your music library automatically.</p>
-                                <button className="connect-spotify-btn" onClick={handleConnect}>
-                                    Connect Spotify
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="spotify-status-card">
-                                <div className="status-info">
-                                    <Check size={18} className="status-check" />
-                                    <span>Connected to Spotify</span>
-                                    {status.token_expired && <span className="status-warning">(Token Expired)</span>}
+                        <div className="direct-import-form">
+                            <p className="section-desc">Paste a public YouTube playlist URL to import all tracks.</p>
+                            <form onSubmit={handleYoutubeImport}>
+                                <div className="admin-input-group">
+                                    <input
+                                        type="text"
+                                        placeholder="YouTube Playlist URL (e.g. https://www.youtube.com/playlist?list=...)"
+                                        value={ytUrl}
+                                        onChange={(e) => setYtUrl(e.target.value)}
+                                        className="admin-input"
+                                    />
                                 </div>
-                                <button className="secondary-btn" onClick={handleConnect}>
-                                    <RefreshCw size={16} />
-                                    Reconnect
+                                <div className="admin-input-group">
+                                    <input
+                                        type="text"
+                                        placeholder="Playlist Name in Mobify"
+                                        value={ytName}
+                                        onChange={(e) => setYtName(e.target.value)}
+                                        className="admin-input"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="primary-btn youtube-import-btn"
+                                    disabled={importingId !== null}
+                                >
+                                    {importingId === 'youtube' ? <Loader className="spin" size={18} /> : <Download size={18} />}
+                                    Start YouTube Import
                                 </button>
-                            </div>
-                        )}
+                            </form>
+                        </div>
                     </section>
 
                     <section className="admin-section">
                         <div className="section-header">
                             <ExternalLink size={20} className="section-icon" />
-                            <h3>Direct Playlist Import</h3>
+                            <h3>Spotify Playlist Import</h3>
                         </div>
                         <div className="direct-import-form">
                             <p className="section-desc">Paste a public Spotify playlist URL to import it directly.</p>
@@ -182,67 +219,11 @@ const AdminPanel = ({ onBack, onUpdateLibrary }) => {
                                     disabled={importingId !== null}
                                 >
                                     {importingId === 'direct' ? <Loader className="spin" size={18} /> : <Download size={18} />}
-                                    Start Direct Import
+                                    Start Spotify Import
                                 </button>
                             </form>
                         </div>
                     </section>
-
-                    {status.connected && (
-                        <section className="admin-section">
-                            <div className="section-header">
-                                <Music size={20} className="section-icon" />
-                                <h3>Transfer Music</h3>
-                            </div>
-
-                            {message && <div className="admin-message">{message}</div>}
-
-                            <div className="transfer-actions">
-                                <button
-                                    className="import-action-card"
-                                    onClick={handleImportLiked}
-                                    disabled={importingId !== null}
-                                >
-                                    <div className="action-icon liked-icon">
-                                        <Download size={24} />
-                                    </div>
-                                    <div className="action-info">
-                                        <span className="action-title">Import Liked Songs</span>
-                                        <span className="action-desc">Add your Spotify faves to Mobify</span>
-                                    </div>
-                                    {importingId === 'liked' && <Loader className="spin" size={20} />}
-                                </button>
-                            </div>
-
-                            <h4 className="sub-section-title">Your Spotify Playlists</h4>
-                            <div className="spotify-playlists-grid">
-                                {isLoading ? (
-                                    <div className="admin-loader"><RefreshCw className="spin" /></div>
-                                ) : (
-                                    playlists.map(playlist => (
-                                        <div key={playlist.id} className="spotify-playlist-item">
-                                            <img src={playlist.image} alt={playlist.name} className="sp-thumb" />
-                                            <div className="sp-info">
-                                                <span className="sp-name">{playlist.name}</span>
-                                                <span className="sp-count">{playlist.tracks_count} tracks</span>
-                                            </div>
-                                            <button
-                                                className="sp-import-btn"
-                                                onClick={() => handleImportPlaylist(playlist)}
-                                                disabled={importingId !== null}
-                                            >
-                                                {importingId === playlist.id ? (
-                                                    <Loader className="spin" size={18} />
-                                                ) : (
-                                                    <Download size={18} />
-                                                )}
-                                            </button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </section>
-                    )}
                 </div>
 
                 <footer className="admin-footer">

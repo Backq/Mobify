@@ -66,6 +66,10 @@ class SpotifyUrlImportRequest(BaseModel):
     url: str
     name: str
 
+class YoutubeUrlImportRequest(BaseModel):
+    url: str
+    name: str
+
 @app.get("/config")
 def get_public_config():
     return {
@@ -266,6 +270,39 @@ async def spotify_import_url(req: SpotifyUrlImportRequest, user: User = Depends(
             
     db.commit()
     print(f"[SPOTIFY] DEBUG: Import complete. Successfully imported {imported_count} tracks.")
+    return {"success": True, "imported_count": imported_count, "playlist_id": db_playlist.id}
+
+@app.post("/youtube/import/url")
+async def youtube_import_url(req: YoutubeUrlImportRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(f"[YOUTUBE] DEBUG: Starting direct import for URL: {req.url}")
+    tracks = await youtube_service.get_playlist_tracks(req.url)
+    
+    if not tracks:
+        print("[YOUTUBE] DEBUG: No tracks found or playlist is private")
+        raise HTTPException(status_code=400, detail="Could not fetch tracks from YouTube URL or playlist is empty/private")
+    
+    print(f"[YOUTUBE] DEBUG: Found {len(tracks)} tracks, creating playlist: {req.name}")
+    db_playlist = Playlist(user_id=user.id, name=req.name)
+    db.add(db_playlist)
+    db.commit()
+    db.refresh(db_playlist)
+    
+    imported_count = 0
+    for i, track in enumerate(tracks):
+        db_track = PlaylistTrack(
+            playlist_id=db_playlist.id,
+            video_id=track['id'],
+            title=track['title'],
+            uploader=track['uploader'],
+            thumbnail=track['thumbnail'],
+            duration=track['duration'],
+            position=i
+        )
+        db.add(db_track)
+        imported_count += 1
+            
+    db.commit()
+    print(f"[YOUTUBE] DEBUG: Import complete. Successfully imported {imported_count} tracks.")
     return {"success": True, "imported_count": imported_count, "playlist_id": db_playlist.id}
 
 # ============== Root ==============

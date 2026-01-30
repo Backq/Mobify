@@ -170,6 +170,13 @@ export const spotifyAPI = {
     }
 };
 
+export const youtubeAPI = {
+    importPlaylistByUrl: async (url, name) => {
+        const res = await api.post('/youtube/import/url', { url, name });
+        return res.data;
+    }
+};
+
 // ============== Stream ==============
 
 export const streamAPI = {

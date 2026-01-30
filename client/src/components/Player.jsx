@@ -37,6 +37,7 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
     const userRef = useRef(user);
     const isAuthenticatedRef = useRef(isAuthenticated);
     const hasRestoredRef = useRef(false);
+    const durationRef = useRef(0); // Add duration ref to avoid stale closures
 
     // Update refs whenever props/context change
     useEffect(() => {
@@ -44,6 +45,12 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
         userRef.current = user;
         isAuthenticatedRef.current = isAuthenticated;
     }, [currentTrack, user, isAuthenticated]);
+
+    // Unified end-of-track handler
+    const handleEnded = () => {
+        setIsPlaying(false);
+        if (onNext) onNext();
+    };
 
     // Initialize audio element once
     useEffect(() => {
@@ -77,7 +84,9 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
             setIsLoading(true);
             setIsPlaying(false);
             setProgress(0);
-            setDuration(currentTrack.duration || 0);
+            const trackDuration = currentTrack.duration || 0;
+            setDuration(trackDuration);
+            durationRef.current = trackDuration;
             setLyrics(null); // Reset lyrics
             hasRestoredRef.current = false; // Reset restore flag for new track
 
@@ -114,15 +123,34 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
 
                 // MediaSession for CarPlay/Lockscreen
                 if ('mediaSession' in navigator) {
+                    const artworkUrl = currentTrack.thumbnail;
+
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: currentTrack.title,
                         artist: currentTrack.uploader,
-                        artwork: [{ src: currentTrack.thumbnail, sizes: '512x512', type: 'image/jpeg' }]
+                        album: 'Mobify', // Helpful for mobile OS categorization
+                        artwork: [
+                            { src: artworkUrl, sizes: '96x96', type: 'image/jpeg' },
+                            { src: artworkUrl, sizes: '128x128', type: 'image/jpeg' },
+                            { src: artworkUrl, sizes: '192x192', type: 'image/jpeg' },
+                            { src: artworkUrl, sizes: '256x256', type: 'image/jpeg' },
+                            { src: artworkUrl, sizes: '384x384', type: 'image/jpeg' },
+                            { src: artworkUrl, sizes: '512x512', type: 'image/jpeg' },
+                        ]
                     });
+
+                    navigator.mediaSession.playbackState = shouldAutoPlay ? "playing" : "paused";
+
                     navigator.mediaSession.setActionHandler('play', () => { audioRef.current.play(); setIsPlaying(true); });
                     navigator.mediaSession.setActionHandler('pause', () => { audioRef.current.pause(); setIsPlaying(false); });
                     navigator.mediaSession.setActionHandler('previoustrack', onPrev);
                     navigator.mediaSession.setActionHandler('nexttrack', onNext);
+                    navigator.mediaSession.setActionHandler('seekto', (details) => {
+                        if (details.seekTime !== undefined && audioRef.current) {
+                            audioRef.current.currentTime = details.seekTime;
+                            setProgress(details.seekTime);
+                        }
+                    });
                 }
             } catch (error) {
                 console.error("Failed to load stream", error);
@@ -138,16 +166,14 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
         const checkProgress = () => {
             if (audioRef.current && !audioRef.current.paused) {
                 const currentTime = audioRef.current.currentTime;
+                const d = durationRef.current;
                 setProgress(currentTime);
 
-                // Still update local storage and duration periodically vs every frame? 
-                // Every frame is fine for simple state, but maybe throttle storage writes if needed?
-                // Actually, let's just update React state here. Storage can be on pause/interval.
-                // But for "persistence", usually periodic is better.
-                // Reusing the existing logic structure but invoking it via rAF:
-
-                if (!isNaN(audioRef.current.duration) && audioRef.current.duration > 0) {
-                    setDuration(audioRef.current.duration);
+                // Manual end detection using the LOCKED duration from metadata
+                if (d > 0 && currentTime >= d - 0.5) {
+                    console.log("[PLAYER] Manual end triggered at Locked Duration:", d);
+                    handleEnded();
+                    return;
                 }
 
                 rafRef.current = requestAnimationFrame(checkProgress);
@@ -173,8 +199,19 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
         // We still listen to timeupdate for low-frequency updates (e.g. background audio)
         // But rAF handles the UI smoothness when active.
         const updateProgress = () => {
-            if (!isPlaying) { // Only update if not handled by rAF loop (e.g. background tab throttling)
-                setProgress(audio.currentTime);
+            // ALWAYS update progress here as fallback for when rAF is throttled in background
+            setProgress(audio.currentTime);
+
+            // Update MediaSession position state
+            if ('mediaSession' in navigator && navigator.mediaSession.setPositionState) {
+                try {
+                    const d = durationRef.current;
+                    navigator.mediaSession.setPositionState({
+                        duration: d || 0,
+                        playbackRate: audio.playbackRate || 1,
+                        position: audio.currentTime
+                    });
+                } catch (e) { /* ignore */ }
             }
 
             // Persistence logic remains here (fires less frequently)
@@ -188,15 +225,12 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
             }
         };
 
-        const handleEnded = () => {
-            setIsPlaying(false);
-            if (onNext) onNext();
-        };
+        // (handleEnded moved to top level)
 
         const handleCanPlay = () => {
-            if (!isNaN(audio.duration)) {
-                setDuration(audio.duration);
-            }
+            // we NO LONGER trust audio.duration on mobile. 
+            // We use durationRef.current which was set from YouTube metadata.
+
             // Restore logic...
             const user = userRef.current;
             const track = currentTrackRef.current;

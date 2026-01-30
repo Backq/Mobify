@@ -1,7 +1,19 @@
-from pytubefix import YouTube, Search
+from pytubefix import YouTube, Search, Playlist
 from pytubefix.cli import on_progress
 import asyncio
+import time
+import socket
 from typing import List, Dict
+
+# Force IPv4 to avoid YouTube IPv6 blocks on VPS
+def force_ipv4():
+    old_getaddrinfo = socket.getaddrinfo
+    def new_getaddrinfo(*args, **kwargs):
+        responses = old_getaddrinfo(*args, **kwargs)
+        return [response for response in responses if response[0] == socket.AF_INET]
+    socket.getaddrinfo = new_getaddrinfo
+
+force_ipv4()
 
 class YouTubeService:
     def __init__(self):
@@ -12,9 +24,12 @@ class YouTubeService:
         Search for videos using pytubefix with pagination
         """
         try:
+            print(f"[DEBUG] Searching for: {query}")
             loop = asyncio.get_event_loop()
             # Run blocking search in executor
+            print("[DEBUG] Running search in executor...")
             results = await loop.run_in_executor(None, self._search_sync, query, limit, offset)
+            print(f"[DEBUG] Search finished. Found {len(results)} items.")
             return results
         except Exception as e:
             print(f"[ERROR] Search failed: {e}")
@@ -63,6 +78,35 @@ class YouTubeService:
             }
         except Exception as e:
             raise Exception(f"Failed to get stream: {str(e)}")
+
+    async def get_playlist_tracks(self, playlist_url: str) -> List[Dict]:
+        """
+        Extract tracks from a YouTube playlist URL
+        """
+        try:
+            loop = asyncio.get_event_loop()
+            tracks = await loop.run_in_executor(None, self._get_playlist_tracks_sync, playlist_url)
+            return tracks
+        except Exception as e:
+            print(f"[ERROR] Failed to fetch playlist tracks: {e}")
+            return []
+
+    def _get_playlist_tracks_sync(self, url: str):
+        pl = Playlist(url)
+        results = []
+        for video in pl.videos:
+            try:
+                results.append({
+                    'id': video.video_id,
+                    'title': video.title,
+                    'uploader': video.author,
+                    'duration': video.length,
+                    'thumbnail': video.thumbnail_url
+                })
+            except Exception as e:
+                print(f"Error parsing video in playlist: {e}")
+                continue
+        return results
 
     def _get_audio_url_sync(self, url: str):
         yt = YouTube(url, on_progress_callback=on_progress)
