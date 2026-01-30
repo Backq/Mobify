@@ -124,14 +124,16 @@ jobs:
               type: application
               platform: iOS
               deploymentTarget: "15.0"
-              sources: [MobifyApp/MobifyApp]
+              sources: [MobifyApp/MobifyApp, ios]
               settings:
                 INFOPLIST_FILE: MobifyApp/MobifyApp/Info.plist
                 PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
-                CODE_SIGN_ENTITLEMENTS: MobifyApp/entitlements.plist
+                CODE_SIGN_ENTITLEMENTS: ios/entitlements.plist
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
                 CODE_SIGN_STYLE: Manual
+                # Add remote logo handling if necessary, but usually images are bundled.
+                # Since we can't easily host assets, we'll suggest using AsyncImage in Swift.
           EOF
           xcodegen generate
 

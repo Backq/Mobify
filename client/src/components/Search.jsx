@@ -12,16 +12,20 @@ const Search = ({ onTrackSelect }) => {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
 
-    const handleSearch = async (e) => {
-        if (e) e.preventDefault();
-        if (!query.trim()) return;
+    const handleSearch = async (forceQuery = null) => {
+        const searchQuery = typeof forceQuery === 'string' ? forceQuery : query;
+        if (!searchQuery.trim()) {
+            setResults([]);
+            setHasSearched(false);
+            return;
+        }
 
         setIsLoading(true);
         setHasSearched(true);
         setPage(1);
 
         try {
-            const data = await searchAPI.search(query.trim(), 1);
+            const data = await searchAPI.search(searchQuery.trim(), 1);
             setResults(data.results || []);
             setHasMore(data.has_more);
         } catch (error) {
@@ -32,6 +36,21 @@ const Search = ({ onTrackSelect }) => {
             setIsLoading(false);
         }
     };
+
+    // Real-time search with debouncing
+    useEffect(() => {
+        if (!query.trim()) {
+            setResults([]);
+            setHasSearched(false);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            handleSearch(query);
+        }, 600); // 600ms delay
+
+        return () => clearTimeout(timer);
+    }, [query]);
 
     const handleLoadMore = async () => {
         if (isLoadingMore || !hasMore) return;
@@ -66,7 +85,7 @@ const Search = ({ onTrackSelect }) => {
                 <p className="tagline">Stream music, your way</p>
             </header>
 
-            <form className="search-form" onSubmit={handleSearch}>
+            <form className="search-form" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
                 <div className="search-wrapper">
                     <SearchIcon className="search-icon" size={20} />
                     <input
@@ -77,9 +96,6 @@ const Search = ({ onTrackSelect }) => {
                         onChange={(e) => setQuery(e.target.value)}
                     />
                 </div>
-                <button type="submit" className="search-btn" disabled={isLoading}>
-                    {isLoading ? 'Searching...' : 'Search'}
-                </button>
             </form>
 
             {isLoading && (
