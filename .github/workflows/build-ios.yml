@@ -27,27 +27,6 @@ jobs:
           mkdir -p MobifyApp/MobifyApp
           cp ios/WebViewWrapper.swift MobifyApp/MobifyApp/ContentView.swift
           
-          # App Icon Setup
-          mkdir -p MobifyApp/MobifyApp/Assets.xcassets/AppIcon.appiconset
-          cp client/src/assets/logo.png MobifyApp/MobifyApp/Assets.xcassets/AppIcon.appiconset/icon.png
-          
-          cat <<EOF > MobifyApp/MobifyApp/Assets.xcassets/AppIcon.appiconset/Contents.json
-          {
-            "images" : [
-              {
-                "idiom" : "universal",
-                "platform" : "ios",
-                "size" : "1024x1024",
-                "filename" : "icon.png"
-              }
-            ],
-            "info" : {
-              "version" : 1,
-              "author" : "xcode"
-            }
-          }
-          EOF
-
           # Info.plist with CarPlay and Background Modes
           cat <<EOF > MobifyApp/MobifyApp/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
@@ -113,7 +92,6 @@ jobs:
               sources: [MobifyApp/MobifyApp]
               settings:
                 INFOPLIST_FILE: MobifyApp/MobifyApp/Info.plist
-                ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
                 PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
@@ -127,13 +105,11 @@ jobs:
             -project Mobify.xcodeproj \
             -scheme Mobify \
             -archivePath Mobify.xcarchive \
-            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            ASSETCATALOG_COMPILER_SKIP_SDK_VALIDATION=YES
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
       - name: Create IPA
         run: |
