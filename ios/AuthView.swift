@@ -5,6 +5,7 @@ struct AuthView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var isLoading = false
+    @State private var showAlert = false
     @State private var errorMsg: String? = nil
     @ObservedObject var auth = AuthManager.shared
     
@@ -31,12 +32,6 @@ struct AuthView: View {
                     .glassStyle()
             }
             
-            if let error = errorMsg {
-                Text(error)
-                    .foregroundColor(.red)
-                    .font(.caption)
-            }
-            
             Button(action: submit) {
                 if isLoading {
                     ProgressView().tint(.black)
@@ -61,6 +56,9 @@ struct AuthView: View {
         .padding(40)
         .background(Theme.bgDark.ignoresSafeArea())
         .foregroundColor(.white)
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("Error"), message: Text(errorMsg ?? "Unknown error"), dismissButton: .default(Text("OK")))
+        }
     }
     
     private func submit() {
@@ -73,10 +71,15 @@ struct AuthView: View {
                 } else {
                     try await auth.register(username: username, password: password)
                 }
+                // On success, isAuthenticated changes and view should swap
+                await MainActor.run {
+                    self.isLoading = false
+                }
             } catch {
                 await MainActor.run {
-                    self.errorMsg = isLogin ? "Login failed." : "Registration failed."
+                    self.errorMsg = isLogin ? "Login failed. Check credentials." : "Registration failed. Username might be taken."
                     self.isLoading = false
+                    self.showAlert = true
                 }
             }
         }

@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct MobifyApp: App {
+    @ObservedObject var auth = AuthManager.shared
+    
     init() {
         // Setup global appearance
         let appearance = UITabBarAppearance()
@@ -14,7 +16,7 @@ struct MobifyApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if AuthManager.shared.isAuthenticated {
+                if auth.isAuthenticated {
                     MainTabView()
                 } else {
                     AuthView()

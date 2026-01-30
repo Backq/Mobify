@@ -9,7 +9,9 @@ struct LibraryView: View {
     @State private var showImportSpotify = false
     @State private var spotifyPlaylistId = ""
     @State private var showImportYouTube = false
-    @State private var youtubeUrl = ""
+    @State private var showAlert = false
+    @State private var alertTitle = ""
+    @State private var alertMsg = ""
     
     var body: some View {
         NavigationView {
@@ -69,6 +71,10 @@ struct LibraryView: View {
                 Button("Cancel", role: .cancel) { youtubeUrl = "" }
                 Button("Import") { importYouTube() }
             }
+            // FeedBack Alert for successes/errors
+            .alert(isPresented: $showAlert) {
+                Alert(title: Text(alertTitle), message: Text(alertMsg), dismissButton: .default(Text("OK")))
+            }
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -85,8 +91,12 @@ struct LibraryView: View {
                     self.isLoading = false
                 }
             } catch {
-                print("Failed to fetch playlists: \(error)")
-                await MainActor.run { self.isLoading = false }
+                await MainActor.run {
+                    self.isLoading = false
+                    self.alertTitle = "Error"
+                    self.alertMsg = "Failed to load library."
+                    self.showAlert = true
+                }
             }
         }
     }
@@ -97,11 +107,18 @@ struct LibraryView: View {
             do {
                 _ = try await APIService.shared.createPlaylist(name: newPlaylistName)
                 await MainActor.run {
-                    newPlaylistName = ""
+                    self.newPlaylistName = ""
+                    self.alertTitle = "Success"
+                    self.alertMsg = "Playlist created!"
+                    self.showAlert = true
                     fetchPlaylists()
                 }
             } catch {
-                print("Failed to create playlist: \(error)")
+                await MainActor.run {
+                    self.alertTitle = "Error"
+                    self.alertMsg = "Failed to create playlist."
+                    self.showAlert = true
+                }
             }
         }
     }
@@ -112,11 +129,18 @@ struct LibraryView: View {
             do {
                 try await APIService.shared.importSpotifyPlaylist(id: spotifyPlaylistId, name: "Imported Spotify")
                 await MainActor.run {
-                    spotifyPlaylistId = ""
+                    self.spotifyPlaylistId = ""
+                    self.alertTitle = "Import Started"
+                    self.alertMsg = "Spotify import is in progress..."
+                    self.showAlert = true
                     fetchPlaylists()
                 }
             } catch {
-                print("Import Spotify failed: \(error)")
+                await MainActor.run {
+                    self.alertTitle = "Error"
+                    self.alertMsg = "Failed to import from Spotify."
+                    self.showAlert = true
+                }
             }
         }
     }
@@ -127,11 +151,18 @@ struct LibraryView: View {
             do {
                 try await APIService.shared.importYouTubePlaylist(url: youtubeUrl, name: "Imported YouTube")
                 await MainActor.run {
-                    youtubeUrl = ""
+                    self.youtubeUrl = ""
+                    self.alertTitle = "Import Started"
+                    self.alertMsg = "YouTube import is in progress..."
+                    self.showAlert = true
                     fetchPlaylists()
                 }
             } catch {
-                print("Import YouTube failed: \(error)")
+                await MainActor.run {
+                    self.alertTitle = "Error"
+                    self.alertMsg = "Failed to import from YouTube."
+                    self.showAlert = true
+                }
             }
         }
     }

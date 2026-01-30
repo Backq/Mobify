@@ -13,6 +13,7 @@ class PlayerManager: ObservableObject {
     @Published var isFavorite: Bool = false
     @Published var playlists: [Playlist] = []
     @Published var toastMessage: String? = nil
+    @Published var errorMessage: String? = nil
     
     private var timeObserver: Any?
     
@@ -63,16 +64,19 @@ class PlayerManager: ObservableObject {
     }
     
     func play(track: Track) async {
-        // Reset state
         await MainActor.run {
             self.progress = 0
-            self.isFavorite = false // Will check properly in a real app via API
+            self.isFavorite = false
+            self.errorMessage = nil
         }
         
         do {
             let streamData = try await APIService.shared.getStream(videoId: track.id)
             let streamURLStr = "https://music.mobware.xyz/api\(streamData.stream_url)"
-            guard let url = URL(string: streamURLStr) else { return }
+            guard let url = URL(string: streamURLStr) else { 
+                await MainActor.run { self.errorMessage = "Malformed stream URL." }
+                return 
+            }
             
             DispatchQueue.main.sync {
                 let playerItem = AVPlayerItem(url: url)
@@ -80,12 +84,15 @@ class PlayerManager: ObservableObject {
                 self.currentTrack = track
                 self.duration = Double(track.duration)
                 self.isPlaying = true
-                self.player?.play() // Ensure it starts!
+                self.player?.play()
                 
                 addTimeObserver()
                 setupNowPlaying()
             }
         } catch {
+            await MainActor.run {
+                self.errorMessage = "Failed to load stream. The video might be unavailable."
+            }
             print("Failed to play track: \(error)")
         }
     }

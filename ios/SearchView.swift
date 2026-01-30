@@ -1,9 +1,10 @@
 import SwiftUI
 
-struct SearchView: View {
-    @State private var query = ""
-    @State private var results: [Track] = []
-    @State private var isLoading = false
+    @State private var currentPage = 1
+    @State private var hasMore = false
+    @State private var isLoadingMore = false
+    @State private var showAlert = false
+    @State private var errorMsg = ""
     
     var onTrackSelect: (Track) -> Void
     
@@ -30,7 +31,7 @@ struct SearchView: View {
                 ProgressView()
                     .tint(.white)
                 Spacer()
-            } else if results.isEmpty && !query.isEmpty {
+            } else if results.isEmpty && !query.isEmpty && !isLoading {
                 Spacer()
                 Text("No results found")
                     .foregroundColor(.gray)
@@ -44,12 +45,32 @@ struct SearchView: View {
                                     onTrackSelect(track)
                                 }
                         }
+                        
+                        if hasMore {
+                            Button(action: loadMore) {
+                                if isLoadingMore {
+                                    ProgressView().tint(.white)
+                                } else {
+                                    Text("Load More")
+                                        .bold()
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(Theme.primaryBlue.opacity(0.8))
+                                        .cornerRadius(10)
+                                }
+                            }
+                            .padding(.top, 10)
+                            .disabled(isLoadingMore)
+                        }
                     }
                     .padding()
                 }
             }
         }
         .background(Theme.bgDark.ignoresSafeArea())
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("Search Error"), message: Text(errorMsg), dismissButton: .default(Text("OK")))
+        }
     }
     
     @State private var searchTask: Task<Void, Never>? = nil
@@ -60,28 +81,54 @@ struct SearchView: View {
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
             results = []
             isLoading = false
+            hasMore = false
             return
         }
         
         isLoading = true
+        currentPage = 1
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s delay
+            try? await Task.sleep(nanoseconds: 500_000_000)
             guard !Task.isCancelled else { return }
             
             do {
-                let response = try await APIService.shared.search(query: query)
+                let response = try await APIService.shared.search(query: query, page: 1, limit: 5)
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
                     self.results = response.results
+                    self.hasMore = response.has_more
                     self.isLoading = false
                 }
             } catch {
                 if !Task.isCancelled {
-                    print("Search failed: \(error)")
                     await MainActor.run {
+                        self.errorMsg = "Search failed. Check your connection."
+                        self.showAlert = true
                         self.isLoading = false
                     }
+                }
+            }
+        }
+    }
+    
+    private func loadMore() {
+        isLoadingMore = true
+        Task {
+            do {
+                let nextPage = currentPage + 1
+                let response = try await APIService.shared.search(query: query, page: nextPage, limit: 5)
+                await MainActor.run {
+                    self.results.append(contentsOf: response.results)
+                    self.hasMore = response.has_more
+                    self.currentPage = nextPage
+                    self.isLoadingMore = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMsg = "Could not load more results."
+                    self.showAlert = true
+                    self.isLoadingMore = false
                 }
             }
         }

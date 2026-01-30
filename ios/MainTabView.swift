@@ -11,6 +11,9 @@ struct MainTabView: View {
                 SearchView(onTrackSelect: { track in
                     Task {
                         await playerManager.play(track: track)
+                        await MainActor.run {
+                            isPlayerExpanded = true
+                        }
                     }
                 })
                 .tabItem {
@@ -42,7 +45,18 @@ struct MainTabView: View {
         .sheet(isPresented: $isPlayerExpanded) {
             PlayerView(isExpanded: $isPlayerExpanded)
         }
+        .alert(item: Binding<AlertError?>(
+            get: { playerManager.errorMessage.map { AlertError(message: $0) } },
+            set: { _ in playerManager.errorMessage = nil }
+        )) { error in
+            Alert(title: Text("Playback Error"), message: Text(error.message), dismissButton: .default(Text("OK")))
+        }
     }
+}
+
+struct AlertError: Identifiable {
+    let id = UUID()
+    let message: String
 }
 
 struct MiniPlayer: View {

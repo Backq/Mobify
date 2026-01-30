@@ -56,10 +56,10 @@ class APIService {
         return try await fetch(endpoint: "/auth/register", method: "POST", body: body)
     }
     
-    // MARK: - Search
+    // Helper for search
     func search(query: String, page: Int = 1) async throws -> SearchResponse {
         let escapedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return try await fetch(endpoint: "/search?query=\(escapedQuery)&page=\(page)")
+        return try await fetch(endpoint: "/search?query=\(escapedQuery)&page=\(page)&limit=20")
     }
     
     // Helper for stream
