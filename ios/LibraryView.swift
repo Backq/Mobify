@@ -94,8 +94,8 @@ struct LibraryView: View {
             } catch {
                 await MainActor.run {
                     self.isLoading = false
-                    self.alertTitle = "Error"
-                    self.alertMsg = "Failed to load library."
+                    self.alertTitle = "Library Error"
+                    self.alertMsg = error.localizedDescription
                     self.showAlert = true
                 }
             }
@@ -116,8 +116,8 @@ struct LibraryView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.alertTitle = "Error"
-                    self.alertMsg = "Failed to create playlist."
+                    self.alertTitle = "Create Error"
+                    self.alertMsg = error.localizedDescription
                     self.showAlert = true
                 }
             }
@@ -138,8 +138,8 @@ struct LibraryView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.alertTitle = "Error"
-                    self.alertMsg = "Failed to import from Spotify."
+                    self.alertTitle = "Import Error"
+                    self.alertMsg = error.localizedDescription
                     self.showAlert = true
                 }
             }
@@ -160,8 +160,8 @@ struct LibraryView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.alertTitle = "Error"
-                    self.alertMsg = "Failed to import from YouTube."
+                    self.alertTitle = "Import Error"
+                    self.alertMsg = error.localizedDescription
                     self.showAlert = true
                 }
             }

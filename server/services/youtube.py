@@ -65,19 +65,26 @@ class YouTubeService:
             url = f"https://www.youtube.com/watch?v={video_id}"
             loop = asyncio.get_event_loop()
             
-            # Use use_po_token=True if needed, but standard usually works with pytubefix
-            stream_url = await loop.run_in_executor(None, self._get_audio_url_sync, url)
-            
-            # We need to fetch metadata again or just return basic info + stream url
-            # Since we scrape metadata in search, we might miss it here if we just use ID.
-            # But pytubefix YouTube object has metadata.
+            # Fetch metadata and stream info
+            data = await loop.run_in_executor(None, self._get_stream_details_sync, url)
             
             return {
                 'id': video_id,
-                'stream_url': stream_url
+                'stream_url': data['stream_url'],
+                'title': data['title'],
+                'duration': data['duration']
             }
         except Exception as e:
             raise Exception(f"Failed to get stream: {str(e)}")
+
+    def _get_stream_details_sync(self, url: str):
+        yt = YouTube(url, on_progress_callback=on_progress)
+        stream = yt.streams.get_audio_only()
+        return {
+            'stream_url': stream.url,
+            'title': yt.title,
+            'duration': yt.length
+        }
 
     async def get_playlist_tracks(self, playlist_url: str) -> List[Dict]:
         """

@@ -91,7 +91,7 @@ class PlayerManager: ObservableObject {
             }
         } catch {
             await MainActor.run {
-                self.errorMessage = "Failed to load stream. The video might be unavailable."
+                self.errorMessage = error.localizedDescription
             }
             print("Failed to play track: \(error)")
         }

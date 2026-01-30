@@ -107,7 +107,7 @@ struct SearchView: View {
             } catch {
                 if !Task.isCancelled {
                     await MainActor.run {
-                        self.errorMsg = "Search failed. Check your connection."
+                        self.errorMsg = error.localizedDescription
                         self.showAlert = true
                         self.isLoading = false
                     }
@@ -130,7 +130,7 @@ struct SearchView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMsg = "Could not load more results."
+                    self.errorMsg = error.localizedDescription
                     self.showAlert = true
                     self.isLoadingMore = false
                 }

@@ -1,10 +1,23 @@
-import Foundation
+enum APIError: Error, LocalizedError {
+    case badURL
+    case serverError(status: Int, message: String)
+    case decodingError(Error)
+    case networkError(Error)
+    
+    var errorDescription: String? {
+        switch self {
+        case .badURL: return "Invalid URL configuration."
+        case .serverError(let status, let message): return "Server Error (\(status)): \(message)"
+        case .decodingError: return "Failed to process server response."
+        case .networkError(let e): return e.localizedDescription
+        }
+    }
+}
 
 class APIService {
     static let shared = APIService()
     
-    // In a real app, this would be configurable inside Settings
-    private var baseURL: String = "https://music.mobware.xyz/api" // Production backend
+    private var baseURL: String = "https://music.mobware.xyz/api"
     
     func setBaseURL(_ url: String) {
         self.baseURL = url
@@ -26,23 +39,34 @@ class APIService {
     
     func fetch<T: Codable>(endpoint: String, method: String = "GET", body: Data? = nil) async throws -> T {
         guard let url = URL(string: "\(baseURL)\(endpoint)") else {
-            throw URLError(.badURL)
+            throw APIError.badURL
         }
         
         var request = createRequest(url: url, method: method)
         request.httpBody = body
         
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            // Log error body for debugging
-            if let errorString = String(data: data, encoding: .utf8) {
-                print("API Error (\(method) \(endpoint)): \(errorString)")
-            }
-            throw URLError(.badServerResponse)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
         }
         
-        return try JSONDecoder().decode(T.self, from: data)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.serverError(status: 0, message: "No HTTP Response")
+        }
+        
+        if !(200...299).contains(httpResponse.statusCode) {
+            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown Error"
+            throw APIError.serverError(status: httpResponse.statusCode, message: errorMsg)
+        }
+        
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw APIError.decodingError(error)
+        }
     }
     
     // MARK: - Auth
