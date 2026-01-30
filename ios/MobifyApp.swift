@@ -13,8 +13,14 @@ struct MobifyApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .preferredColorScheme(.dark)
+            Group {
+                if AuthManager.shared.isAuthenticated {
+                    MainTabView()
+                } else {
+                    LoginView()
+                }
+            }
+            .preferredColorScheme(.dark)
         }
     }
 }

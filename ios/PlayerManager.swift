@@ -10,34 +10,78 @@ class PlayerManager: ObservableObject {
     @Published var isPlaying: Bool = false
     @Published var progress: Double = 0
     @Published var duration: Double = 0
+    @Published var isFavorite: Bool = false
+    @Published var playlists: [Playlist] = []
+    @Published var toastMessage: String? = nil
     
     private var timeObserver: Any?
     
     private init() {
         setupRemoteTransportControls()
+        fetchPlaylists()
+    }
+    
+    func fetchPlaylists() {
+        Task {
+            if let ps = try? await APIService.shared.getPlaylists() {
+                await MainActor.run { self.playlists = ps }
+            }
+        }
+    }
+    
+    func toggleFavorite() {
+        guard let track = currentTrack else { return }
+        Task {
+            do {
+                if isFavorite {
+                    try await APIService.shared.removeLiked(videoId: track.id)
+                } else {
+                    try await APIService.shared.addLiked(track: track)
+                }
+                await MainActor.run { self.isFavorite.toggle() }
+            } catch {
+                print("Toggle favorite failed: \(error)")
+            }
+        }
+    }
+    
+    func addToPlaylist(_ playlistId: Int) {
+        guard let track = currentTrack else { return }
+        Task {
+            do {
+                try await APIService.shared.addTrackToPlaylist(id: playlistId, track: track)
+                await MainActor.run {
+                    self.toastMessage = "Added to playlist!"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.toastMessage = nil }
+                }
+            } catch {
+                print("Add to playlist failed: \(error)")
+            }
+        }
     }
     
     func play(track: Track) async {
+        // Reset state
+        await MainActor.run {
+            self.progress = 0
+            self.isFavorite = false // Will check properly in a real app via API
+        }
+        
         do {
             let streamData = try await APIService.shared.getStream(videoId: track.id)
             let streamURLStr = "https://music.mobware.xyz/api\(streamData.stream_url)"
             guard let url = URL(string: streamURLStr) else { return }
             
             DispatchQueue.main.sync {
+                let playerItem = AVPlayerItem(url: url)
+                self.player = AVPlayer(playerItem: playerItem)
                 self.currentTrack = track
                 self.duration = Double(track.duration)
-                
-                let playerItem = AVPlayerItem(url: url)
-                if self.player == nil {
-                    self.player = AVPlayer(playerItem: playerItem)
-                } else {
-                    self.player?.replaceCurrentItem(with: playerItem)
-                }
-                
-                self.player?.play()
                 self.isPlaying = true
-                setupNowPlaying()
+                self.player?.play() // Ensure it starts!
+                
                 addTimeObserver()
+                setupNowPlaying()
             }
         } catch {
             print("Failed to play track: \(error)")

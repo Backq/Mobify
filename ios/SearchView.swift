@@ -52,28 +52,36 @@ struct SearchView: View {
         .background(Theme.bgDark.ignoresSafeArea())
     }
     
+    @State private var searchTask: Task<Void, Never>? = nil
+
     private func debounceSearch() {
-        guard !query.isEmpty else {
+        searchTask?.cancel()
+        
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
             results = []
+            isLoading = false
             return
         }
         
         isLoading = true
-        // Debounce logic using Task
-        Task {
-            try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s delay
             guard !Task.isCancelled else { return }
             
             do {
                 let response = try await APIService.shared.search(query: query)
-                DispatchQueue.main.async {
+                guard !Task.isCancelled else { return }
+                
+                await MainActor.run {
                     self.results = response.results
                     self.isLoading = false
                 }
             } catch {
-                print("Search failed: \(error)")
-                DispatchQueue.main.async {
-                    self.isLoading = false
+                if !Task.isCancelled {
+                    print("Search failed: \(error)")
+                    await MainActor.run {
+                        self.isLoading = false
+                    }
                 }
             }
         }

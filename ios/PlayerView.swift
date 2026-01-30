@@ -31,12 +31,37 @@ struct PlayerView: View {
                             .font(.headline)
                             .opacity(0.8)
                         Spacer()
-                        Button(action: {}) {
-                            Image(systemName: "heart")
+                        
+                        Menu {
+                            Section("Add to Playlist") {
+                                ForEach(playerManager.playlists) { pl in
+                                    Button(pl.name) {
+                                        playerManager.addToPlaylist(pl.id)
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "plus.circle")
                                 .font(.title2)
                         }
+                        
+                        Button(action: { playerManager.toggleFavorite() }) {
+                            Image(systemName: playerManager.isFavorite ? "heart.fill" : "heart")
+                                .font(.title2)
+                                .foregroundColor(playerManager.isFavorite ? .red : .white)
+                        }
+                        .padding(.leading, 15)
                     }
                     .padding(.horizontal)
+                    
+                    if let msg = playerManager.toastMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .padding(8)
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(8)
+                            .transition(.opacity)
+                    }
                     
                     Spacer()
                     
@@ -49,7 +74,7 @@ struct PlayerView: View {
                     }
                     .cornerRadius(20)
                     .shadow(radius: 20)
-                    .padding(30)
+                    .padding(.horizontal, 30)
                     
                     // Title/Artist
                     VStack(spacing: 8) {
@@ -66,7 +91,7 @@ struct PlayerView: View {
                     
                     // Progress
                     VStack {
-                        Slider(value: $playerManager.progress, in: 0...playerManager.duration)
+                        Slider(value: Binding(get: { playerManager.progress }, set: { playerManager.progress = $0 }), in: 0...playerManager.duration)
                             .accentColor(Theme.primaryBlue)
                         HStack {
                             Text(formatTime(playerManager.progress))

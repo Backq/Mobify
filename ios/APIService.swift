@@ -51,4 +51,51 @@ class APIService {
     func getStream(videoId: String) async throws -> StreamData {
         return try await fetch(endpoint: "/stream/\(videoId)")
     }
+    
+    // MARK: - Liked Songs
+    func getLikedSongs() async throws -> [Track] {
+        return try await fetch(endpoint: "/liked")
+    }
+    
+    func addLiked(track: Track) async throws {
+        let body = try JSONEncoder().encode(track)
+        let _: JSONValue = try await fetch(endpoint: "/liked", method: "POST", body: body)
+    }
+    
+    func removeLiked(videoId: String) async throws {
+        let _: JSONValue = try await fetch(endpoint: "/liked/\(videoId)", method: "DELETE")
+    }
+    
+    // MARK: - Playlists
+    func getPlaylists() async throws -> [Playlist] {
+        return try await fetch(endpoint: "/playlists")
+    }
+    
+    func getPlaylistDetail(id: Int) async throws -> PlaylistDetail {
+        return try await fetch(endpoint: "/playlists/\(id)")
+    }
+    
+    func createPlaylist(name: String) async throws -> Playlist {
+        let body = try JSONEncoder().encode(["name": name])
+        return try await fetch(endpoint: "/playlists", method: "POST", body: body)
+    }
+    
+    func addTrackToPlaylist(id: Int, track: Track) async throws {
+        let body = try JSONEncoder().encode(track)
+        let _: JSONValue = try await fetch(endpoint: "/playlists/\(id)/tracks", method: "POST", body: body)
+    }
+    
+    // MARK: - Import
+    func importSpotifyPlaylist(id: String, name: String) async throws {
+        let body = try JSONEncoder().encode(["spotify_id": id, "name": name])
+        let _: JSONValue = try await fetch(endpoint: "/spotify/import/playlist", method: "POST", body: body)
+    }
+    
+    func importYouTubePlaylist(url: String, name: String) async throws {
+        let body = try JSONEncoder().encode(["url": url, "name": name])
+        let _: JSONValue = try await fetch(endpoint: "/youtube/import/url", method: "POST", body: body)
+    }
 }
+
+// Utility for Generic Responses
+struct JSONValue: Codable {}
