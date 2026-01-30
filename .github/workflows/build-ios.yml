@@ -25,10 +25,6 @@ jobs:
       - name: Set up Xcode Project
         run: |
           mkdir -p MobifyApp/MobifyApp
-          cp ios/WebViewWrapper.swift MobifyApp/MobifyApp/ContentView.swift
-          cp ios/CarPlayDelegate.swift MobifyApp/MobifyApp/CarPlayDelegate.swift
-          cp ios/entitlements.plist MobifyApp/entitlements.plist
-          
           # Info.plist with CarPlay Scene Manifest and Background Modes
           cat <<EOF > MobifyApp/MobifyApp/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
@@ -69,11 +65,6 @@ jobs:
                   <string>audio</string>
                   <string>fetch</string>
               </array>
-              <key>getApplicationSceneManifest</key>
-              <dict>
-                  <key>UIApplicationSupportsMultipleScenes</key>
-                  <true/>
-              </dict>
               <key>UIApplicationSceneManifest</key>
               <dict>
                   <key>UIApplicationSupportsMultipleScenes</key>
@@ -89,15 +80,6 @@ jobs:
                               <string>CarPlay</string>
                               <key>UISceneDelegateClassName</key>
                               <string>\$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
-                          </dict>
-                      </array>
-                      <key>UIWindowSceneSessionRoleApplication</key>
-                      <array>
-                          <dict>
-                              <key>UISceneConfigurationName</key>
-                              <string>Default Configuration</string>
-                              <key>UISceneDelegateClassName</key>
-                              <string>\$(PRODUCT_MODULE_NAME).SceneDelegate</string>
                           </dict>
                       </array>
                   </dict>
@@ -124,7 +106,7 @@ jobs:
               type: application
               platform: iOS
               deploymentTarget: "15.0"
-              sources: [MobifyApp/MobifyApp, ios]
+              sources: [ios]
               settings:
                 INFOPLIST_FILE: MobifyApp/MobifyApp/Info.plist
                 PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
@@ -132,8 +114,6 @@ jobs:
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
                 CODE_SIGN_STYLE: Manual
-                # Add remote logo handling if necessary, but usually images are bundled.
-                # Since we can't easily host assets, we'll suggest using AsyncImage in Swift.
           EOF
           xcodegen generate
 
