@@ -199,6 +199,17 @@
     margin-bottom: var(--spacing-lg);
 }
 
+.fs-header-actions {
+    display: flex;
+    gap: 4px;
+}
+
+@media (min-width: 375px) {
+    .fs-header-actions {
+        gap: var(--spacing-xs);
+    }
+}
+
 .fs-header-title {
     font-size: 0.85rem;
     text-transform: uppercase;

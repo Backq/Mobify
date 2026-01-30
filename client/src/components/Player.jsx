@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, ChevronDown, Heart, ListPlus, Shuffle, Mic2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, ChevronDown, Heart, ListPlus, Shuffle, Mic2, List } from 'lucide-react';
 import { useConfig } from '../contexts/ConfigContext';
 import { useAuth } from '../contexts/AuthContext';
 import { likedAPI, streamAPI, lyricsAPI } from '../services/api';
@@ -400,11 +400,18 @@ const Player = ({ currentTrack, onNext, onPrev, onLibraryUpdate, isShuffle, onTo
                         <span className="fs-header-title">Now Playing</span>
                         <div className="fs-header-actions">
                             <button
+                                className="icon-btn"
+                                onClick={handlePlaylistClick}
+                                title="Add to Playlist"
+                            >
+                                <ListPlus size={24} />
+                            </button>
+                            <button
                                 className={`icon-btn ${showQueue ? 'active-text' : ''}`}
                                 onClick={() => { setShowQueue(!showQueue); setShowLyrics(false); }}
                                 title="Queue"
                             >
-                                <ListPlus size={24} />
+                                <List size={24} />
                             </button>
                             <button
                                 className={`icon-btn ${showLyrics ? 'active-text' : ''}`}
