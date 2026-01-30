@@ -35,20 +35,20 @@ class CarPlayViewController: UIViewController {
     // Support for Rotary Knob turning and directional pushes via KeyCommands
     override var keyCommands: [UIKeyCommand]? {
         return [
-            UIKeyCommand(input: UIKeyInputUpArrow, modifierFlags: [], action: #selector(handleKey)),
-            UIKeyCommand(input: UIKeyInputDownArrow, modifierFlags: [], action: #selector(handleKey)),
-            UIKeyCommand(input: UIKeyInputLeftArrow, modifierFlags: [], action: #selector(handleKey)),
-            UIKeyCommand(input: UIKeyInputRightArrow, modifierFlags: [], action: #selector(handleKey)),
+            UIKeyCommand(input: UIKeyCommand.inputUpArrow, modifierFlags: [], action: #selector(handleKey)),
+            UIKeyCommand(input: UIKeyCommand.inputDownArrow, modifierFlags: [], action: #selector(handleKey)),
+            UIKeyCommand(input: UIKeyCommand.inputLeftArrow, modifierFlags: [], action: #selector(handleKey)),
+            UIKeyCommand(input: UIKeyCommand.inputRightArrow, modifierFlags: [], action: #selector(handleKey)),
             UIKeyCommand(input: "\r", modifierFlags: [], action: #selector(handleKey)) // Enter
         ]
     }
     
     @objc func handleKey(_ command: UIKeyCommand) {
         switch command.input {
-        case UIKeyInputUpArrow: moveCursor(dx: 0, dy: -40)
-        case UIKeyInputDownArrow: moveCursor(dx: 0, dy: 40)
-        case UIKeyInputLeftArrow: moveCursor(dx: -40, dy: 0)
-        case UIKeyInputRightArrow: moveCursor(dx: 40, dy: 0)
+        case UIKeyCommand.inputUpArrow: moveCursor(dx: 0, dy: -40)
+        case UIKeyCommand.inputDownArrow: moveCursor(dx: 0, dy: 40)
+        case UIKeyCommand.inputLeftArrow: moveCursor(dx: -40, dy: 0)
+        case UIKeyCommand.inputRightArrow: moveCursor(dx: 40, dy: 0)
         case "\r": simulateClick()
         default: break
         }
