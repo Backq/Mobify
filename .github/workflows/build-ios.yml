@@ -128,6 +128,7 @@ jobs:
               settings:
                 INFOPLIST_FILE: MobifyApp/MobifyApp/Info.plist
                 PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
+                CODE_SIGN_ENTITLEMENTS: MobifyApp/entitlements.plist
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
                 CODE_SIGN_STYLE: Manual
@@ -141,7 +142,6 @@ jobs:
             -scheme Mobify \
             -archivePath Mobify.xcarchive \
             -destination 'generic/platform=iOS' \
-            -entitlements MobifyApp/entitlements.plist \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
