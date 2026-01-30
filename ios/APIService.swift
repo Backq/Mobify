@@ -57,9 +57,9 @@ class APIService {
     }
     
     // Helper for search
-    func search(query: String, page: Int = 1) async throws -> SearchResponse {
+    func search(query: String, page: Int = 1, limit: Int = 5) async throws -> SearchResponse {
         let escapedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return try await fetch(endpoint: "/search?query=\(escapedQuery)&page=\(page)&limit=20")
+        return try await fetch(endpoint: "/search?query=\(escapedQuery)&page=\(page)&limit=\(limit)")
     }
     
     // Helper for stream

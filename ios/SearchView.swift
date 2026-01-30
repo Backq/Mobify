@@ -1,5 +1,9 @@
 import SwiftUI
 
+struct SearchView: View {
+    @State private var query = ""
+    @State private var results: [Track] = []
+    @State private var isLoading = false
     @State private var currentPage = 1
     @State private var hasMore = false
     @State private var isLoadingMore = false
@@ -14,7 +18,7 @@ import SwiftUI
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
-                TextField("Search for songs, artists...", text: $query)
+                TextField("Search (limit 5 + load more)...", text: $query)
                     .textFieldStyle(PlainTextFieldStyle())
                     .autocapitalization(.none)
                     .disableAutocorrection(true)

@@ -9,6 +9,7 @@ struct LibraryView: View {
     @State private var showImportSpotify = false
     @State private var spotifyPlaylistId = ""
     @State private var showImportYouTube = false
+    @State private var youtubeUrl = ""
     @State private var showAlert = false
     @State private var alertTitle = ""
     @State private var alertMsg = ""
