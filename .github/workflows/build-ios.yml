@@ -127,14 +127,17 @@ jobs:
             -scheme Mobify \
             -archivePath Mobify.xcarchive \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
       - name: Create IPA
         run: |
           mkdir -p Payload
           cp -r Mobify.xcarchive/Products/Applications/Mobify.app Payload/
-          zip -r Mobify.ipa Payload
+          zip -ar Mobify.ipa Payload
           
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
