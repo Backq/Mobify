@@ -18,8 +18,18 @@ class PlayerManager: ObservableObject {
     private var timeObserver: Any?
     
     private init() {
+        setupAudioSession()
         setupRemoteTransportControls()
         fetchPlaylists()
+    }
+    
+    private func setupAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to set audio session category: \(error)")
+        }
     }
     
     func fetchPlaylists() {
@@ -68,6 +78,7 @@ class PlayerManager: ObservableObject {
             self.progress = 0
             self.isFavorite = false
             self.errorMessage = nil
+            self.isPlaying = false // Set false until we actually start
         }
         
         do {
@@ -78,16 +89,22 @@ class PlayerManager: ObservableObject {
                 return 
             }
             
-            DispatchQueue.main.sync {
+            await MainActor.run {
+                if let observer = self.timeObserver {
+                    self.player?.removeTimeObserver(observer)
+                    self.timeObserver = nil
+                }
+                
                 let playerItem = AVPlayerItem(url: url)
                 self.player = AVPlayer(playerItem: playerItem)
+                self.player?.automaticallyWaitsToMinimizeStalling = true
                 self.currentTrack = track
                 self.duration = Double(track.duration)
                 self.isPlaying = true
                 self.player?.play()
                 
-                addTimeObserver()
-                setupNowPlaying()
+                self.addTimeObserver()
+                self.setupNowPlaying()
             }
         } catch {
             await MainActor.run {
@@ -97,16 +114,30 @@ class PlayerManager: ObservableObject {
         }
     }
     
+    func seek(to time: Double) {
+        let targetTime = CMTime(seconds: time, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        player?.seek(to: targetTime)
+        self.progress = time
+    }
+    
     private func addTimeObserver() {
-        if let observer = timeObserver {
-            player?.removeTimeObserver(observer)
-        }
-        
         let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         timeObserver = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            self?.progress = time.seconds
-            self?.updateNowPlayingPlaybackInfo()
+            guard let self = self else { return }
+            self.progress = time.seconds
+            self.updateNowPlayingPlaybackInfo()
+            
+            // Auto skip logic
+            if self.duration > 0 && self.progress >= self.duration - 1 {
+                self.skipToNext()
+            }
         }
+    }
+    
+    func skipToNext() {
+        // Implementation for queue logic would go here
+        // For now just pause or restart
+        Task { await MainActor.run { self.player?.seek(to: .zero); self.player?.play() } }
     }
     
     func togglePlayPause() {
@@ -123,7 +154,8 @@ class PlayerManager: ObservableObject {
     private func setupRemoteTransportControls() {
         let commandCenter = MPRemoteCommandCenter.shared()
         
-        commandCenter.playCommand.addTarget { [unowned self] event in
+        commandCenter.playCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
             if !self.isPlaying {
                 self.togglePlayPause()
                 return .success
@@ -131,12 +163,18 @@ class PlayerManager: ObservableObject {
             return .commandFailed
         }
         
-        commandCenter.pauseCommand.addTarget { [unowned self] event in
+        commandCenter.pauseCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
             if self.isPlaying {
                 self.togglePlayPause()
                 return .success
             }
             return .commandFailed
+        }
+        
+        commandCenter.nextTrackCommand.addTarget { [weak self] event in
+            self?.skipToNext()
+            return .success
         }
     }
     
@@ -146,8 +184,6 @@ class PlayerManager: ObservableObject {
         nowPlayingInfo[MPMediaItemPropertyTitle] = track.title
         nowPlayingInfo[MPMediaItemPropertyArtist] = track.uploader
         nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = Double(track.duration)
-        
-        // Artwork logic would go here (fetch from URL)
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }

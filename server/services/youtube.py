@@ -65,7 +65,7 @@ class YouTubeService:
             url = f"https://www.youtube.com/watch?v={video_id}"
             loop = asyncio.get_event_loop()
             
-            # Fetch metadata and stream info
+            # Fetch metadata and stream info with mobile client bypass
             data = await loop.run_in_executor(None, self._get_stream_details_sync, url)
             
             return {
@@ -75,11 +75,18 @@ class YouTubeService:
                 'duration': data['duration']
             }
         except Exception as e:
-            raise Exception(f"Failed to get stream: {str(e)}")
+            print(f"[ERROR] pytubefix extraction failed: {e}")
+            raise Exception(f"YouTube detected bot or block: {str(e)}")
 
     def _get_stream_details_sync(self, url: str):
-        yt = YouTube(url, on_progress_callback=on_progress)
+        # Use a mobile client it's often more relaxed on bot detection
+        yt = YouTube(url, on_progress_callback=on_progress, client='MWEB')
         stream = yt.streams.get_audio_only()
+        if not stream:
+            # Fallback to standard if MWEB fails
+            yt = YouTube(url, on_progress_callback=on_progress)
+            stream = yt.streams.get_audio_only()
+        
         return {
             'stream_url': stream.url,
             'title': yt.title,

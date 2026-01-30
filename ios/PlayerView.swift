@@ -91,7 +91,7 @@ struct PlayerView: View {
                     
                     // Progress
                     VStack {
-                        Slider(value: Binding(get: { playerManager.progress }, set: { playerManager.progress = $0 }), in: 0...playerManager.duration)
+                        Slider(value: Binding(get: { playerManager.progress }, set: { playerManager.seek(to: $0) }), in: 0...max(1, playerManager.duration))
                             .accentColor(Theme.primaryBlue)
                         HStack {
                             Text(formatTime(playerManager.progress))

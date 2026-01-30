@@ -396,40 +396,47 @@ async def get_lyrics(query: str):
 @app.get("/audio/{video_id}")
 async def proxy_audio(video_id: str, request: Request):
     try:
-        data = await youtube_service.get_stream_url(video_id)
-        url = data['stream_url']
+        # Get stream data once
+        stream_data = await youtube_service.get_stream_url(video_id)
+        url = stream_data['stream_url']
         
-        # Pull range header from the incoming request
+        # Relay range header
         range_header = request.headers.get("range")
-        headers = {}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
         if range_header:
             headers["range"] = range_header
-        
-        # Set a common user agent to avoid some proxy/YouTube blocks
-        headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-        # Define the generator for streaming the content
         async def stream_generator():
             async with httpx.AsyncClient(timeout=60.0) as client:
                 async with client.stream("GET", url, headers=headers, follow_redirects=True) as r:
-                    async for chunk in r.aiter_bytes(chunk_size=1024*64): # 64KB chunks
+                    # Relay 403/401/etc from YouTube if they happen
+                    if r.status_code >= 400:
+                        yield b"Error from YouTube: " + str(r.status_code).encode()
+                        return
+                    async for chunk in r.aiter_bytes(chunk_size=128*1024): # Increased to 128KB
                         yield chunk
 
-        # Fetch metadata from the source to provide correct status and headers (like Content-Range)
+        # Initial probe for headers
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # We use a limited GET if HEAD is not supported, but head is usually fine for Google Video
             source_resp = await client.head(url, headers=headers, follow_redirects=True)
             
+            # If head fails, try a tiny get
+            if source_resp.status_code >= 400:
+                 source_resp = await client.get(url, headers={**headers, "Range": "bytes=0-0"}, follow_redirects=True)
+
             status_code = source_resp.status_code
             response_headers = {
                 "Accept-Ranges": "bytes",
-                "Content-Type": source_resp.headers.get("Content-Type", "audio/webm"),
+                "Content-Type": source_resp.headers.get("Content-Type", "audio/mpeg"),
                 "Content-Length": source_resp.headers.get("Content-Length"),
                 "Content-Range": source_resp.headers.get("Content-Range"),
-                "Cache-Control": "public, max-age=3600"
+                "Cache-Control": "public, max-age=3600",
+                "Connection": "keep-alive"
             }
             
-            # Filter out None values
+            # Filter None
             response_headers = {k: v for k, v in response_headers.items() if v is not None}
             
             return StreamingResponse(
@@ -439,8 +446,7 @@ async def proxy_audio(video_id: str, request: Request):
             )
             
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        print(f"[ERROR] Proxy Audio failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============== Liked Songs ==============
