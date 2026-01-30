@@ -20,7 +20,7 @@ jobs:
       - name: Set up Xcode version
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.2.0'
+          xcode-version: '15.4.0'
 
       - name: Set up Xcode Project
         run: |
@@ -48,7 +48,7 @@ jobs:
           }
           EOF
 
-          # Create a minimal Info.plist with CarPlay and Background Modes
+          # Info.plist with CarPlay and Background Modes
           cat <<EOF > MobifyApp/MobifyApp/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -114,11 +114,6 @@ jobs:
               settings:
                 INFOPLIST_FILE: MobifyApp/MobifyApp/Info.plist
                 ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-                ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO
-                ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOLS: NO
-                PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
-                SUPPORTED_PLATFORMS: iphoneos
-                TARGETED_DEVICE_FAMILY: "1"
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
                 CODE_SIGN_STYLE: Manual
@@ -131,14 +126,12 @@ jobs:
             -project Mobify.xcodeproj \
             -scheme Mobify \
             -archivePath Mobify.xcarchive \
+            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            VALIDATE_WORKSPACE=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
       - name: Create IPA
         run: |
