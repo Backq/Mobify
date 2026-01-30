@@ -116,10 +116,12 @@ jobs:
                 ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
                 ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO
                 ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOLS: NO
+                PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
+                SUPPORTED_PLATFORMS: iphoneos
+                TARGETED_DEVICE_FAMILY: "1"
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
                 CODE_SIGN_STYLE: Manual
-                PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
           EOF
           xcodegen generate
 
@@ -129,14 +131,14 @@ jobs:
             -project Mobify.xcodeproj \
             -scheme Mobify \
             -archivePath Mobify.xcarchive \
-            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             VALIDATE_WORKSPACE=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS=NO
 
       - name: Create IPA
         run: |
