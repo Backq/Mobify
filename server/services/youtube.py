@@ -1,8 +1,9 @@
 import asyncio
-import json
-import subprocess
 import socket
+import time
 from typing import List, Dict
+from pytubefix import YouTube, Search, Playlist
+from pytubefix.cli import on_progress
 
 # Force IPv4 to avoid YouTube IPv6 blocks on VPS
 def force_ipv4():
@@ -16,117 +17,112 @@ force_ipv4()
 
 class YouTubeService:
     def __init__(self):
-        # We use yt-dlp as it's the most robust bypass for BotDetection
-        self.ytdlp_path = "yt-dlp"
+        # Cache to prevent double-requests (Metadata + Audio Proxy)
+        # video_id -> {'data': dict, 'expires': float}
+        self.stream_cache = {}
+
+    def _get_cached_stream(self, video_id: str):
+        now = time.time()
+        if video_id in self.stream_cache:
+            item = self.stream_cache[video_id]
+            if now < item['expires']:
+                print(f"[DEBUG] Cache HIT for {video_id}")
+                return item['data']
+            else:
+                del self.stream_cache[video_id]
+        return None
+
+    def _set_cached_stream(self, video_id: str, data: dict):
+        self.stream_cache[video_id] = {
+            'data': data,
+            'expires': time.time() + 600 # Cache for 10 minutes
+        }
 
     async def search(self, query: str, limit: int = 10, offset: int = 0) -> List[Dict]:
         try:
-            print(f"[DEBUG] yt-dlp searching for: {query}")
-            # Use ytsearch with limit
-            # Note: yt-dlp doesn't have a direct "offset" for search results, 
-            # so we fetch more and slice if needed, or just let it be.
-            # Usually search isn't the bottleneck.
-            cmd = [
-                self.ytdlp_path,
-                f"ytsearch{limit + offset}:{query}",
-                "--dump-json",
-                "--flat-playlist",
-                "--quiet"
-            ]
-            
+            print(f"[DEBUG] Search: {query}")
             loop = asyncio.get_event_loop()
-            process = await loop.run_in_executor(None, lambda: subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
-            stdout, stderr = await loop.run_in_executor(None, process.communicate)
-            
-            results = []
-            lines = stdout.strip().split('\n')
-            # Handle empty lines or errors
-            valid_lines = [line for line in lines if line.strip()]
-            
-            # Slice for offset/limit
-            for line in valid_lines[offset:offset+limit]:
-                try:
-                    data = json.loads(line)
-                    results.append({
-                        'id': data.get('id'),
-                        'title': data.get('title'),
-                        'uploader': data.get('uploader') or data.get('channel'),
-                        'duration': int(data.get('duration') or 0),
-                        'thumbnail': data.get('thumbnail') or f"https://i.ytimg.com/vi/{data.get('id')}/hqdefault.jpg",
-                        'url': f"https://www.youtube.com/watch?v={data.get('id')}"
-                    })
-                except Exception as e:
-                    print(f"Error parsing json line: {e}")
-            
-            print(f"[DEBUG] Search finished. Found {len(results)} items.")
+            results = await loop.run_in_executor(None, self._search_sync, query, limit, offset)
             return results
         except Exception as e:
-            print(f"[ERROR] yt-dlp search failed: {e}")
+            print(f"[ERROR] Search failed: {e}")
             return []
 
+    def _search_sync(self, query: str, limit: int, offset: int):
+        # We use a human search query
+        s = Search(query)
+        results = []
+        # Get videos with slice
+        videos = s.videos[offset:offset + limit]
+        for vid in videos:
+            try:
+                results.append({
+                    'id': vid.video_id,
+                    'title': vid.title,
+                    'uploader': vid.author,
+                    'duration': vid.length,
+                    'thumbnail': vid.thumbnail_url,
+                    'url': vid.watch_url
+                })
+            except Exception:
+                continue
+        return results
+
     async def get_stream_url(self, video_id: str):
+        # Check Cache First
+        cached = self._get_cached_stream(video_id)
+        if cached: return cached
+
         try:
             url = f"https://www.youtube.com/watch?v={video_id}"
-            print(f"[DEBUG] yt-dlp extracting stream for: {video_id}")
-            
-            # -g returns the stream URL, -e returns the title, --get-duration returns duration
-            # Best to use --dump-json to get everything at once reliably
-            cmd = [
-                self.ytdlp_path,
-                "-j",
-                "-f", "ba/b", # bestaudio or best
-                "--no-playlist",
-                url
-            ]
-            
             loop = asyncio.get_event_loop()
-            process = await loop.run_in_executor(None, lambda: subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
-            stdout, stderr = await loop.run_in_executor(None, process.communicate)
             
-            if not stdout.strip():
-                raise Exception(f"yt-dlp failed: {stderr}")
-                
-            data = json.loads(stdout)
-            return {
-                'id': video_id,
-                'stream_url': data.get('url'),
-                'title': data.get('title'),
-                'duration': int(data.get('duration') or 0)
-            }
+            # Using client='MWEB' or 'WEB' often helps on VPS
+            # but let's try the user's standard request first
+            data = await loop.run_in_executor(None, self._get_audio_url_sync, url)
+            
+            self._set_cached_stream(video_id, data)
+            return data
         except Exception as e:
-            print(f"[ERROR] yt-dlp extraction failed: {e}")
-            raise Exception(f"Video unavailable or block: {str(e)}")
+            print(f"[ERROR] Pytubefix extraction failed: {e}")
+            raise Exception(f"Failed to get stream: {str(e)}")
+
+    def _get_audio_url_sync(self, url: str):
+        # Default pytubefix logic
+        yt = YouTube(url, on_progress_callback=on_progress)
+        stream = yt.streams.get_audio_only()
+        if not stream:
+            raise Exception("No audio stream found")
+            
+        return {
+            'id': yt.video_id,
+            'stream_url': stream.url,
+            'title': yt.title,
+            'duration': yt.length
+        }
 
     async def get_playlist_tracks(self, playlist_url: str) -> List[Dict]:
         try:
-            cmd = [
-                self.ytdlp_path,
-                "--dump-json",
-                "--flat-playlist",
-                "--quiet",
-                playlist_url
-            ]
             loop = asyncio.get_event_loop()
-            process = await loop.run_in_executor(None, lambda: subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
-            stdout, stderr = await loop.run_in_executor(None, process.communicate)
-            
-            results = []
-            for line in stdout.strip().split('\n'):
-                if not line.strip(): continue
-                try:
-                    data = json.loads(line)
-                    results.append({
-                        'id': data.get('id'),
-                        'title': data.get('title'),
-                        'uploader': data.get('uploader') or data.get('channel'),
-                        'duration': int(data.get('duration') or 0),
-                        'thumbnail': data.get('thumbnail')
-                    })
-                except:
-                    continue
-            return results
+            return await loop.run_in_executor(None, self._get_playlist_tracks_sync, playlist_url)
         except Exception as e:
-            print(f"[ERROR] Failed to fetch playlist tracks: {e}")
+            print(f"[ERROR] Playlist failed: {e}")
             return []
+
+    def _get_playlist_tracks_sync(self, url: str):
+        pl = Playlist(url)
+        results = []
+        for video in pl.videos:
+            try:
+                results.append({
+                    'id': video.video_id,
+                    'title': video.title,
+                    'uploader': video.author,
+                    'duration': video.length,
+                    'thumbnail': video.thumbnail_url
+                })
+            except Exception:
+                continue
+        return results
 
 youtube_service = YouTubeService()
