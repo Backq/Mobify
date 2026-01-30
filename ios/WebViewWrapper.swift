@@ -11,7 +11,7 @@ struct WebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences = prefs
         config.allowsInlineMediaPlayback = true
-        config.requiresUserActionForMediaPlayback = false
+        config.mediaTypesRequiringUserActionForPlayback = []
         
         // Essential for background playback in webview
         config.allowsAirPlayForMediaPlayback = true

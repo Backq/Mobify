@@ -114,9 +114,12 @@ jobs:
               settings:
                 INFOPLIST_FILE: MobifyApp/MobifyApp/Info.plist
                 ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+                ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO
+                ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOLS: NO
                 CODE_SIGNING_REQUIRED: NO
                 CODE_SIGNING_ALLOWED: NO
                 CODE_SIGN_STYLE: Manual
+                PRODUCT_BUNDLE_IDENTIFIER: xyz.mobware.music
           EOF
           xcodegen generate
 
@@ -131,13 +134,15 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            VALIDATE_WORKSPACE=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Create IPA
         run: |
           mkdir -p Payload
           cp -r Mobify.xcarchive/Products/Applications/Mobify.app Payload/
-          zip -ar Mobify.ipa Payload
+          zip -r Mobify.ipa Payload
           
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
