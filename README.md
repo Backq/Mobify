@@ -71,3 +71,19 @@ Before starting, ensure you have the following installed:
 
 ## ⚙️ Configuration
 The server configuration relies on `config.json` in the root (or server) directory.
+
+---
+
+## 📱 iOS App Build (IPA)
+You can build a native iOS Webview App for Mobify directly using GitHub Actions. No Mac required!
+
+### How to Build:
+1.  **Fork/Push**: Ensure this project is in your GitHub repository.
+2.  **Actions**: Go to the **Actions** tab on your GitHub repository.
+3.  **Select Workflow**: Click on the **"Build iOS IPA"** workflow on the left.
+4.  **Run**: Click the **Run workflow** button (ensure the branch is `main`).
+5.  **Download**: Once finished (approx 2-3 mins), navigate to the **Releases** section on the right side of your repository home page.
+6.  **Install**: Download the `Mobify.ipa` and install it on your iPhone using **SideStore** or **AltStore**.
+
+> [!TIP]
+> Each build will be automatically numbered and tagged (e.g., `ios-v1`, `ios-v2`) for easy tracking.
