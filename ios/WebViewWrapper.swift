@@ -1,9 +1,9 @@
 import SwiftUI
 import WebKit
 
-struct WebView: UIViewRepresentable {
+struct WebViewWrapper: UIViewRepresentable {
     let url: URL
-
+    
     func makeUIView(context: Context) -> WKWebView {
         let prefs = WKWebpagePreferences()
         prefs.allowsContentJavaScript = true
@@ -13,23 +13,22 @@ struct WebView: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         
-        // Essential for background playback in webview
+        // Essential for background playback
         config.allowsAirPlayForMediaPlayback = true
         
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.allowsBackForwardNavigationGestures = true
         
-        // Ensure the background is black to match Mobify aesthetic
-        webView.backgroundColor = .black
-        webView.isOpaque = false
+        // Custom User Agent to avoid mobile redirects and get full layout
+        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        
+        let request = URLRequest(url: url)
+        webView.load(request)
         
         return webView
     }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        let request = URLRequest(url: url)
-        webView.load(request)
-    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
 }
 
 struct ContentView: View {
@@ -38,34 +37,28 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selection) {
             // HOME - Mobify Site
-            WebView(url: URL(string: "https://music.mobware.xyz")!)
+            WebViewWrapper(url: URL(string: "https://music.mobware.xyz")!)
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("Home")
                 }
                 .tag(0)
             
-            // SEARCH - YouTube
-            WebView(url: URL(string: "https://www.youtube.com")!)
+            // CARPLAY STREAM - YouTube
+            WebViewWrapper(url: URL(string: "https://www.youtube.com")!)
                 .tabItem {
-                    Image(systemName: "magnifyingglass")
-                    Text("Search")
+                    Image(systemName: "play.tv.fill")
+                    Text("Carplay Stream")
                 }
                 .tag(1)
         }
-        .accentColor(.red) // Match Mobify/YouTube branding
+        .accentColor(.red)
         .preferredColorScheme(.dark)
     }
 }
 
 @main
 struct MobifyApp: App {
-    init() {
-        // Basic configuration for audio playback
-        // In a real app we'd setup AVAudioSession here, 
-        // but for a webview wrapper, the browser engine handles most of it.
-    }
-    
     var body: some Scene {
         WindowGroup {
             ContentView()

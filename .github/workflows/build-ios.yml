@@ -26,8 +26,10 @@ jobs:
         run: |
           mkdir -p MobifyApp/MobifyApp
           cp ios/WebViewWrapper.swift MobifyApp/MobifyApp/ContentView.swift
+          cp ios/CarPlayDelegate.swift MobifyApp/MobifyApp/CarPlayDelegate.swift
+          cp ios/entitlements.plist MobifyApp/entitlements.plist
           
-          # Info.plist with CarPlay and Background Modes
+          # Info.plist with CarPlay Scene Manifest and Background Modes
           cat <<EOF > MobifyApp/MobifyApp/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -67,6 +69,39 @@ jobs:
                   <string>audio</string>
                   <string>fetch</string>
               </array>
+              <key>getApplicationSceneManifest</key>
+              <dict>
+                  <key>UIApplicationSupportsMultipleScenes</key>
+                  <true/>
+              </dict>
+              <key>UIApplicationSceneManifest</key>
+              <dict>
+                  <key>UIApplicationSupportsMultipleScenes</key>
+                  <true/>
+                  <key>UISceneConfigurations</key>
+                  <dict>
+                      <key>CPTemplateApplicationSceneSessionRoleApplication</key>
+                      <array>
+                          <dict>
+                              <key>UISceneClassName</key>
+                              <string>CPTemplateApplicationScene</string>
+                              <key>UISceneConfigurationName</key>
+                              <string>CarPlay</string>
+                              <key>UISceneDelegateClassName</key>
+                              <string>\$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
+                          </dict>
+                      </array>
+                      <key>UIWindowSceneSessionRoleApplication</key>
+                      <array>
+                          <dict>
+                              <key>UISceneConfigurationName</key>
+                              <string>Default Configuration</string>
+                              <key>UISceneDelegateClassName</key>
+                              <string>\$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                          </dict>
+                      </array>
+                  </dict>
+              </dict>
               <key>CPSupportedExternalDisplay</key>
               <true/>
               <key>CPSupportedExternalStyles</key>
@@ -106,6 +141,7 @@ jobs:
             -scheme Mobify \
             -archivePath Mobify.xcarchive \
             -destination 'generic/platform=iOS' \
+            -entitlements MobifyApp/entitlements.plist \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
