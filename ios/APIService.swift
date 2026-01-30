@@ -35,13 +35,28 @@ class APIService {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            // Log error body for debugging
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("API Error (\(method) \(endpoint)): \(errorString)")
+            }
             throw URLError(.badServerResponse)
         }
         
         return try JSONDecoder().decode(T.self, from: data)
     }
     
-    // Helper for search
+    // MARK: - Auth
+    func login(username: String, password: [Character]) async throws -> AuthResponse {
+        let body = try JSONEncoder().encode(["username": username, "password": String(password)])
+        return try await fetch(endpoint: "/auth/login", method: "POST", body: body)
+    }
+    
+    func register(username: String, password: [Character]) async throws -> AuthResponse {
+        let body = try JSONEncoder().encode(["username": username, "password": String(password)])
+        return try await fetch(endpoint: "/auth/register", method: "POST", body: body)
+    }
+    
+    // MARK: - Search
     func search(query: String, page: Int = 1) async throws -> SearchResponse {
         let escapedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         return try await fetch(endpoint: "/search?query=\(escapedQuery)&page=\(page)")

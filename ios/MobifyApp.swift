@@ -17,7 +17,7 @@ struct MobifyApp: App {
                 if AuthManager.shared.isAuthenticated {
                     MainTabView()
                 } else {
-                    LoginView()
+                    AuthView()
                 }
             }
             .preferredColorScheme(.dark)

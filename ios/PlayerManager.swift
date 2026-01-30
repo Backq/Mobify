@@ -52,7 +52,9 @@ class PlayerManager: ObservableObject {
                 try await APIService.shared.addTrackToPlaylist(id: playlistId, track: track)
                 await MainActor.run {
                     self.toastMessage = "Added to playlist!"
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.toastMessage = nil }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                        self?.toastMessage = nil
+                    }
                 }
             } catch {
                 print("Add to playlist failed: \(error)")

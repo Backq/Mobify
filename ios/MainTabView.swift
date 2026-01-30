@@ -24,8 +24,7 @@ struct MainTabView: View {
                 }
                 .tag(1)
                 
-                // Profile or Settings placeholder
-                Text("Profile Settings")
+                ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }

@@ -6,6 +6,11 @@ struct LibraryView: View {
     @State private var showCreateModal = false
     @State private var newPlaylistName = ""
     
+    @State private var showImportSpotify = false
+    @State private var spotifyPlaylistId = ""
+    @State private var showImportYouTube = false
+    @State private var youtubeUrl = ""
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -38,10 +43,10 @@ struct LibraryView: View {
                     }
                     
                     Section(header: Text("Import").foregroundColor(.gray)) {
-                        Button(action: { importSpotify() }) {
+                        Button(action: { showImportSpotify = true }) {
                             Label("Import from Spotify", systemImage: "arrow.down.circle")
                         }
-                        Button(action: { importYouTube() }) {
+                        Button(action: { showImportYouTube = true }) {
                             Label("Import from YouTube", systemImage: "play.rectangle")
                         }
                     }
@@ -53,6 +58,16 @@ struct LibraryView: View {
                 TextField("Playlist Name", text: $newPlaylistName)
                 Button("Cancel", role: .cancel) { newPlaylistName = "" }
                 Button("Create") { createPlaylist() }
+            }
+            .alert("Import Spotify Playlist", isPresented: $showImportSpotify) {
+                TextField("Spotify Playlist ID", text: $spotifyPlaylistId)
+                Button("Cancel", role: .cancel) { spotifyPlaylistId = "" }
+                Button("Import") { importSpotify() }
+            }
+            .alert("Import YouTube URL", isPresented: $showImportYouTube) {
+                TextField("YouTube URL", text: $youtubeUrl)
+                Button("Cancel", role: .cancel) { youtubeUrl = "" }
+                Button("Import") { importYouTube() }
             }
         }
         .preferredColorScheme(.dark)
@@ -92,11 +107,32 @@ struct LibraryView: View {
     }
     
     private func importSpotify() {
-        // Mock prompt for now, in a real app would show a sub-modal
-        print("Importing Spotify...")
+        guard !spotifyPlaylistId.isEmpty else { return }
+        Task {
+            do {
+                try await APIService.shared.importSpotifyPlaylist(id: spotifyPlaylistId, name: "Imported Spotify")
+                await MainActor.run {
+                    spotifyPlaylistId = ""
+                    fetchPlaylists()
+                }
+            } catch {
+                print("Import Spotify failed: \(error)")
+            }
+        }
     }
     
     private func importYouTube() {
-        print("Importing YouTube...")
+        guard !youtubeUrl.isEmpty else { return }
+        Task {
+            do {
+                try await APIService.shared.importYouTubePlaylist(url: youtubeUrl, name: "Imported YouTube")
+                await MainActor.run {
+                    youtubeUrl = ""
+                    fetchPlaylists()
+                }
+            } catch {
+                print("Import YouTube failed: \(error)")
+            }
+        }
     }
 }

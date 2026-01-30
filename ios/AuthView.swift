@@ -1,6 +1,7 @@
 import SwiftUI
 
-struct LoginView: View {
+struct AuthView: View {
+    @State private var isLogin = true
     @State private var username = ""
     @State private var password = ""
     @State private var isLoading = false
@@ -13,23 +14,21 @@ struct LoginView: View {
                 .resizable()
                 .frame(width: 80, height: 80)
                 .foregroundColor(Theme.primaryBlue)
-                .padding(.bottom, 20)
+                .padding(.bottom, 10)
             
-            Text("Login to Mobify")
+            Text(isLogin ? "Login to Mobify" : "Create Account")
                 .font(.largeTitle)
                 .bold()
             
             VStack(spacing: 15) {
                 TextField("Username", text: $username)
                     .padding()
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(10)
+                    .glassStyle()
                     .autocapitalization(.none)
                 
                 SecureField("Password", text: $password)
                     .padding()
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(10)
+                    .glassStyle()
             }
             
             if let error = errorMsg {
@@ -38,11 +37,11 @@ struct LoginView: View {
                     .font(.caption)
             }
             
-            Button(action: login) {
+            Button(action: submit) {
                 if isLoading {
                     ProgressView().tint(.black)
                 } else {
-                    Text("Login")
+                    Text(isLogin ? "Login" : "Register")
                         .bold()
                         .frame(maxWidth: .infinity)
                 }
@@ -50,11 +49,11 @@ struct LoginView: View {
             .padding()
             .background(Theme.primaryBlue)
             .foregroundColor(.black)
-            .cornerRadius(10)
+            .cornerRadius(12)
             .disabled(isLoading || username.isEmpty || password.isEmpty)
             
-            Button("Don't have an account? Register") {
-                // Toggle to Register mode if needed
+            Button(isLogin ? "Don't have an account? Register" : "Already have an account? Login") {
+                withAnimation { isLogin.toggle() }
             }
             .font(.caption)
             .foregroundColor(.gray)
@@ -64,16 +63,19 @@ struct LoginView: View {
         .foregroundColor(.white)
     }
     
-    private func login() {
+    private func submit() {
         isLoading = true
         errorMsg = nil
         Task {
             do {
-                try await auth.login(username: username, password: password)
-                // AuthManager will update @Published property and UI will react
+                if isLogin {
+                    try await auth.login(username: username, password: password)
+                } else {
+                    try await auth.register(username: username, password: password)
+                }
             } catch {
                 await MainActor.run {
-                    self.errorMsg = "Login failed. Please check credentials."
+                    self.errorMsg = isLogin ? "Login failed." : "Registration failed."
                     self.isLoading = false
                 }
             }
